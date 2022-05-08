@@ -5,7 +5,7 @@ edition = "2021"
 description = "A CLI application for revoking Twitch OAuth tokens."
 license = "MIT"
 keywords = ["twitch", "cli", "oauth"]
-
+repository = "https://github.com/treuks/revoker"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
