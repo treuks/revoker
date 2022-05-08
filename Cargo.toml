@@ -2,7 +2,6 @@
 name = "revoker"
 version = "1.0.0"
 edition = "2021"
-authors = "TreuKS"
 description = "A CLI application for revoking Twitch OAuth tokens."
 license = "MIT"
 keywords = ["twitch", "cli", "oauth"]
