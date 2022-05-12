@@ -1,5 +1,5 @@
 # Revoker - A Twitch OAuth Token Revoker
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftreuks%2Frevoker.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftreuks%2Frevoker?ref=badge_shield)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftreuks%2Frevoker.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftreuks%2Frevoker?ref=badge_small)
 
 ## Details
 
@@ -15,7 +15,6 @@ Features:
 * Doesn't come with a shit tonn of features you won't need, it does one thing, and oh boy does it do it well ![KKoooona](https://cdn.frankerfacez.com/emote/164405/1)
 
 
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftreuks%2Frevoker.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftreuks%2Frevoker?ref=badge_large)
-![Image not found: /assets/gplv2.svg](/assets/gplv2.svg "Image not found: /assets/gplv2.svg")
+## Licenses
+![Licensed as GPLv2.0_or_later.](/assets/gplv2.svg "Image not found: /assets/gplv2.svg")
 ![ Also licensed as GPLv3.0_or_later.](/assets/gplv3.svg)
