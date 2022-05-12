@@ -1,9 +1,9 @@
 [package]
 name = "revoker"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "A CLI application for revoking Twitch OAuth tokens."
-license = "MIT"
+license = "GPL-2.0-or-later OR GPL-3.0-or-later AND CC0-1.0"
 keywords = ["twitch", "cli", "oauth"]
 repository = "https://github.com/treuks/revoker"
 

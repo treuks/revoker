@@ -17,3 +17,5 @@ Features:
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftreuks%2Frevoker.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftreuks%2Frevoker?ref=badge_large)
+![Image not found: /assets/gplv2.svg](/assets/gplv2.svg "Image not found: /assets/gplv2.svg")
+![ Also licensed as GPLv3.0_or_later.](/assets/gplv3.svg)

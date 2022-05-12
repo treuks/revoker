@@ -1,3 +1,8 @@
+// Revoker / A CLI tool for convenient Twitch OAuth token revoking
+
+// Copyright (C) 2022 / Mykola "TreuKS"
+
+
 use http::status::StatusCode;
 use reqwest;
 use serde::{Deserialize, Serialize};
