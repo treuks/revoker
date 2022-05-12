@@ -1,9 +1,11 @@
 # Revoker - A Twitch OAuth Token Revoker
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftreuks%2Frevoker.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftreuks%2Frevoker?ref=badge_shield)
 
 ## Details
 
 Revoker is a small CLI tool written in Rust, made so you can easily and urgently remove a Twitch OAuth token, in case you leak it out. ![zneixApu](https://static-cdn.jtvnw.net/emoticons/v2/306464464/static/light/1.0) ![zneixLeak](https://static-cdn.jtvnw.net/emoticons/v2/306465249/static/light/1.0)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftreuks%2Frevoker.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftreuks%2Frevoker?ref=badge_shield)
+
+
 
 Features:
 
