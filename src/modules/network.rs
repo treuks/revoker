@@ -21,7 +21,7 @@ pub async fn revoke_token(
 
     match revoke_token.status() {
         StatusCode::OK => Ok(format!(
-            "Token for the \"{}\" account  has been revoked successfully.",
+            "Token for the \"{}\" account has been revoked successfully.",
             verjs.login
         )),
         StatusCode::UNAUTHORIZED => Err(verify::ACheckError::InvalidToken(
