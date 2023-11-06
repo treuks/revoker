@@ -1,9 +1,9 @@
 [package]
 name = "revoker"
-version = "1.0.1"
+version = "2.0.0"
 edition = "2021"
 description = "A CLI application for revoking Twitch OAuth tokens."
-license = "GPL-2.0-or-later OR GPL-3.0-or-later AND CC0-1.0"
+license = "MPL-2.0"
 keywords = ["twitch", "cli", "oauth"]
 repository = "https://github.com/treuks/revoker"
 
@@ -11,9 +11,5 @@ repository = "https://github.com/treuks/revoker"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.18.1", features = ["full"] }
-clap = { version = "3.1.17", features = ["derive"] }
-reqwest = { version = "0.11.10", features = ["json"]}
-serde = { version = "1.0.137", features = ["derive"]}
-serde_json = "1.0.81"
-http = "0.2.7"
+attohttpc = { version = "0.26.1", features = ["basic-auth"] }
+miniserde = "0.1"

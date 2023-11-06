@@ -1,43 +1,117 @@
-// Revoker / A CLI tool for convenient Twitch OAuth token revoking
+use attohttpc::{self, StatusCode};
+use miniserde::{json, Deserialize, Serialize};
+use std::{cmp::Ordering, env, process};
 
-// Copyright (C) 2022 / Mykola "TreuKS"
-
-use clap::Parser;
-
-use revoker::modules::network;
-use revoker::modules::verify;
-/// Smol program to revoke a Twitch OAuth token.
-#[derive(Parser, Debug)]
-#[clap(
-    author = "---------- \n Copyright (C) 2022 TreuKS <ks2225@protonmail.com>",
-    version = "v1.0.1",
-    about = "Allows you to revoke your Twitch OAuth Token",
-    long_about = "\n Revoker is a small and compact cli tool, which allows you \n to effortlessly revoke your Twitch OAuth token\n\n 
- This program comes with ABSOLUTELY NO WARRANTY. \n
- This is free software, and you are welcome to redistribute it as per the GPLv2.0 and the GPLv3.0 license conditions\n---------- "
-)]
-struct Args {
-    /// Put your Twitch OAuth token here.
-    #[clap(short, long)]
-    token: String,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct VerifiedJson {
+    pub client_id: String,
+    pub login: String,
+    pub scopes: Vec<String>,
+    pub user_id: String,
+    pub expires_in: i32, // In case it might be -1
 }
 
-#[tokio::main]
-async fn main() {
-    let args = Args::parse();
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TwitchAuthError {
+    pub status: u16,
+    pub message: String,
+}
 
-    match verify::parse_pos_token(args.token) {
-        Ok(token) => match verify::advanced_token_check(&token).await {
-            Ok(good_token) => match network::revoke_token(token, good_token).await {
-                Ok(revoked_token) => println!("{}", revoked_token),
-                Err(err) => eprintln!("{}", err),
-            },
+fn normalize_oauth(potential_oauth: &str) -> &str {
+    if potential_oauth.starts_with("oauth:") {
+        &potential_oauth[6..]
+    } else {
+        potential_oauth
+    }
+}
 
-            Err(e) => eprintln!("{}", e),
-        },
+#[derive(Debug)]
+pub enum LengthError {
+    TooLong,
+    TooShort,
+}
 
-        Err(e) => {
-            eprintln!("Error: {}", e);
+fn check_oauth_len(oauth: &str) -> Result<&str, LengthError> {
+    match oauth.len().cmp(&30) {
+        Ordering::Greater => Err(LengthError::TooLong),
+        Ordering::Less => Err(LengthError::TooShort),
+        Ordering::Equal => Ok(oauth),
+    }
+}
+
+fn main() {
+    match env::args().nth(1) {
+        Some(arg) => {
+            let normal_oauth = normalize_oauth(&arg);
+            let oauth = match check_oauth_len(normal_oauth) {
+                Ok(val) => val,
+                Err(LengthError::TooShort) => {
+                    eprintln!("Error: Token is too short");
+                    process::exit(1);
+                }
+                Err(LengthError::TooLong) => {
+                    eprintln!("Error: Token is too long");
+                    process::exit(1);
+                }
+            };
+            let response = attohttpc::get("https://id.twitch.tv/oauth2/validate")
+                .bearer_auth(oauth)
+                .send()
+                .map_err(|err| eprintln!("Error while sending request: {err}"))
+                .unwrap();
+
+            match response.status() {
+                StatusCode::UNAUTHORIZED => {
+                    eprintln!("Error: invalid access token");
+                    process::exit(1);
+                }
+                StatusCode::NOT_FOUND => {
+                    eprintln!("Error: Twitch might have changed the validation endpoint. Create an issue.")
+                }
+
+                StatusCode::OK => {
+                    let ok_response = response.text_utf8().unwrap();
+                    let resp_json: VerifiedJson = json::from_str(&ok_response).expect("Twitch did a fucky wucky and changed the json response for the verification endpoint, please create an issue");
+
+                    let revoking_response = attohttpc::post("https://id.twitch.tv/oauth2/revoke")
+                        .param("client_id", &resp_json.client_id)
+                        .param("token", oauth)
+                        .send()
+                        .map_err(|err| eprintln!("Error while sending request: {err}"))
+                        .unwrap();
+                    match revoking_response.status() {
+                        StatusCode::BAD_REQUEST => {
+                            eprintln!("Error: token is invalid");
+                            process::exit(1);
+                        }
+                        StatusCode::NOT_FOUND => {
+                            // We check for the message because we don't know if the endpoint itself is not found or if its the token
+                            let xdd: TwitchAuthError =
+                                json::from_str(&revoking_response.text().unwrap()).expect("Revoking endpoint response is different. The endpoint changed. Create an issue.");
+                            eprintln!("Error: {}", xdd.message);
+                            process::exit(1);
+                        }
+
+                        StatusCode::OK => {
+                            println!(
+                                "Token for user \"{}\" has been revoked succesfully.",
+                                &resp_json.login
+                            )
+                        }
+
+                        _ => {
+                            unreachable!("Twitch have sent an undocumented status code, skill issue on their part, ngl");
+                        }
+                    }
+                }
+                _ => {
+                    unreachable!("Twitch have sent an undocumented status code, skill issue on their part, ngl");
+                }
+            }
+        }
+        None => {
+            eprintln!("Error: Empty token field \n\n Usage: ./revoker <oauth>");
+            process::exit(1);
         }
     }
 }
