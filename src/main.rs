@@ -39,9 +39,54 @@ fn check_oauth_len(oauth: &str) -> Result<&str, LengthError> {
     }
 }
 
+enum RevError {
+    AttoError(attohttpc::Error),
+    DeserizationError(miniserde::Error),
+    Length(LengthError),
+}
+
+impl From<attohttpc::Error> for RevError {
+    fn from(value: attohttpc::Error) -> Self {
+        Self::AttoError(value)
+    }
+}
+
+impl From<miniserde::Error> for RevError {
+    fn from(value: miniserde::Error) -> Self {
+        Self::DeserizationError(value)
+    }
+}
+
+impl From<LengthError> for RevError {
+    fn from(value: LengthError) -> Self {
+        match value {
+            LengthError::TooLong => Self::Length(LengthError::TooLong),
+            LengthError::TooShort => Self::Length(LengthError::TooShort),
+        }
+    }
+}
+
 fn main() {
     match env::args().nth(1) {
-        Some(arg) => hate_nesting(&arg),
+        Some(arg) => match hate_nesting(&arg) {
+            Ok(_) => {}
+            Err(RevError::AttoError(err)) => {
+                eprintln!("Request error: {err}");
+                process::exit(1);
+            }
+            Err(RevError::DeserizationError(err)) => {
+                eprintln!("Error during deserialization: {err}");
+                process::exit(1);
+            }
+            Err(RevError::Length(LengthError::TooLong)) => {
+                eprintln!("Error: token too long");
+                process::exit(1);
+            }
+            Err(RevError::Length(LengthError::TooShort)) => {
+                eprintln!("Error: token too short");
+                process::exit(1);
+            }
+        },
         None => {
             eprintln!("Error: Empty token field \n\n Usage: ./revoker <oauth>");
             process::exit(1);
@@ -49,27 +94,12 @@ fn main() {
     }
 }
 
-fn hate_nesting(arg_oauth: &str) {
+fn hate_nesting(arg_oauth: &str) -> Result<(), RevError> {
     let normal_oauth = normalize_oauth(arg_oauth);
-    let oauth = match check_oauth_len(normal_oauth) {
-        Ok(val) => val,
-        Err(LengthError::TooShort) => {
-            eprintln!("Error: Token is too short");
-            process::exit(1);
-        }
-        Err(LengthError::TooLong) => {
-            eprintln!("Error: Token is too long");
-            process::exit(1);
-        }
-    };
+    let oauth = check_oauth_len(normal_oauth)?;
     let response = attohttpc::get("https://id.twitch.tv/oauth2/validate")
         .bearer_auth(oauth)
-        .send()
-        .map_err(|err| {
-            eprintln!("Error while sending request: {err}");
-            process::exit(1);
-        })
-        .unwrap();
+        .send()?;
 
     let resp_json: VerifiedJson = match response.status() {
         StatusCode::UNAUTHORIZED => {
@@ -81,12 +111,13 @@ fn hate_nesting(arg_oauth: &str) {
             process::exit(1);
         }
         StatusCode::OK => {
-            let ok_response = response.text_utf8().unwrap();
+            let ok_response = response.text()?;
             json::from_str(&ok_response).expect("Twitch did a fucky wucky and changed the json response for the verification endpoint, please create an issue")
         }
         _ => {
             unreachable!(
-                "Twitch have sent an undocumented status code, skill issue on their part, ngl"
+                "Twitch have sent an undocumented status code ({}), skill issue on their part, ngl",
+                response.status()
             );
         }
     };
@@ -94,13 +125,7 @@ fn hate_nesting(arg_oauth: &str) {
     let revoking_response = attohttpc::post("https://id.twitch.tv/oauth2/revoke")
         .param("client_id", &resp_json.client_id)
         .param("token", oauth)
-        .send()
-        .map_err(|err| {
-            eprintln!("Error while sending request: {err}");
-            process::exit(1);
-        })
-        .unwrap();
-
+        .send()?;
     match revoking_response.status() {
         StatusCode::BAD_REQUEST => {
             eprintln!("Error: token is invalid");
@@ -108,23 +133,22 @@ fn hate_nesting(arg_oauth: &str) {
         }
         StatusCode::NOT_FOUND => {
             // We check for the message because we don't know if the endpoint itself is not found or if its the token
-            let xdd: TwitchAuthError = json::from_str(&revoking_response.text().unwrap()).expect(
+            let xdd: TwitchAuthError = json::from_str(&revoking_response.text()?).expect(
                 "Revoking endpoint response is different. The endpoint changed. Create an issue.",
             );
             eprintln!("Error: {}", xdd.message);
             process::exit(1);
         }
 
-        StatusCode::OK => {
-            println!(
-                "Token for user \"{}\" has been revoked succesfully.",
-                &resp_json.login
-            )
-        }
+        StatusCode::OK => Ok(println!(
+            "Token for user \"{}\" has been revoked succesfully.",
+            &resp_json.login
+        )),
 
         _ => {
             unreachable!(
-                "Twitch have sent an undocumented status code, skill issue on their part, ngl"
+                "Twitch have sent an undocumented status code ({}), skill issue on their part, ngl",
+                revoking_response.status()
             );
         }
     }
