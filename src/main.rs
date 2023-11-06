@@ -19,7 +19,7 @@ pub struct TwitchAuthError {
 
 fn normalize_oauth(potential_oauth: &str) -> &str {
     if potential_oauth.starts_with("oauth:") {
-        &potential_oauth[6..]
+        potential_oauth.strip_prefix("oauth:").unwrap()
     } else {
         potential_oauth
     }
