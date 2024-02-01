@@ -66,35 +66,67 @@ impl From<LengthError> for RevError {
     }
 }
 
-fn main() {
-    match env::args().nth(1) {
-        Some(arg) => match hate_nesting(&arg) {
-            Ok(_) => {}
-            Err(RevError::AttoError(err)) => {
-                eprintln!("Request error: {err}");
-                process::exit(1);
-            }
-            Err(RevError::DeserizationError(err)) => {
-                eprintln!("Error during deserialization: {err}");
-                process::exit(1);
-            }
-            Err(RevError::Length(LengthError::TooLong)) => {
-                eprintln!("Error: token too long");
-                process::exit(1);
-            }
-            Err(RevError::Length(LengthError::TooShort)) => {
-                eprintln!("Error: token too short");
-                process::exit(1);
-            }
-        },
-        None => {
-            eprintln!("Error: Empty token field \n\n Usage: ./revoker <oauth>");
-            process::exit(1);
-        }
-    }
+fn print_version() {
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    println!(r#"
+
+    Revoker v{VERSION} - a lightweight Twitch OAuth token revoking tool.
+        
+
+    Usage:
+
+        * revoker `<token>`
+        
+        * revoker `oauth:<>`
+        
+        * revoker `--help` or `-h` to print this dialogue
+
+    "#
+    );
 }
 
-fn hate_nesting(arg_oauth: &str) -> Result<(), RevError> {
+fn main() {
+
+    let args = env::args().collect::<Vec<_>>();
+
+    let asd_args = &args;
+    if asd_args.iter().any(|el| el == "--help" || el == "-h") {
+        print_version();
+        process::exit(0);
+    }
+
+    let oauth = match args.get(1) {
+        Some(el) => el,
+        None => {
+            print_version();
+            process::exit(0);
+        }
+    };
+
+    match revoke_oauth(oauth.as_str()) {
+        Ok(ret) => {
+            println!("{ret}");
+        }
+        Err(RevError::AttoError(err)) => {
+            eprintln!("Request error: {err}");
+            process::exit(1);
+        }
+        Err(RevError::DeserizationError(err)) => {
+            eprintln!("Error during deserialization: {err}");
+            process::exit(1);
+        }
+        Err(RevError::Length(LengthError::TooLong)) => {
+            eprintln!("Error: token too long");
+            process::exit(1);
+        }
+        Err(RevError::Length(LengthError::TooShort)) => {
+            eprintln!("Error: token too short");
+            process::exit(1);
+        }
+    } 
+}
+
+fn revoke_oauth(arg_oauth: &str) -> Result<String, RevError> {
     let normal_oauth = normalize_oauth(arg_oauth);
     let oauth = check_oauth_len(normal_oauth)?;
     let response = attohttpc::get("https://id.twitch.tv/oauth2/validate")
@@ -126,6 +158,7 @@ fn hate_nesting(arg_oauth: &str) -> Result<(), RevError> {
         .param("client_id", &resp_json.client_id)
         .param("token", oauth)
         .send()?;
+
     match revoking_response.status() {
         StatusCode::BAD_REQUEST => {
             eprintln!("Error: token is invalid");
@@ -140,7 +173,7 @@ fn hate_nesting(arg_oauth: &str) -> Result<(), RevError> {
             process::exit(1);
         }
 
-        StatusCode::OK => Ok(println!(
+        StatusCode::OK => Ok(format!(
             "Token for user \"{}\" has been revoked succesfully.",
             &resp_json.login
         )),
